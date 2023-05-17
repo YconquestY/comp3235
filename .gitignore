@@ -8,6 +8,4 @@ lex.yy.c
 # executable
 *.o
 # example
-*.sc
-*.nas
-*.nas2
+test/
