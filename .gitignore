@@ -1,0 +1,13 @@
+# nas
+nas/
+nas2/
+# flex
+lex.yy.c
+# bison
+*.tab.*
+# executable
+*.o
+# example
+*.sc
+*.nas
+*.nas2
