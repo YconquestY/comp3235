@@ -7,7 +7,7 @@ typedef
 struct {
     long value; // value of constant
     int  what;  // 0 for integer/character
-}               // 1 for string
+}               // 1 for string (memory address)
 conNodeType;
 
 /* identifiers */
@@ -30,7 +30,8 @@ struct {
 oprNodeType;
 
 typedef
-struct nodeTypeTag {
+struct nodeTypeTag
+{
     nodeEnum type; // type of node
     // `union` must be the last entry in `nodeType`
     // because `operNodeType` may dynamically increase.
@@ -42,5 +43,22 @@ struct nodeTypeTag {
 }
 nodeType;
 
-extern char sym[100][30];
+struct shape {
+    int dim; // dimension
+    struct shape *next;
+};
+typedef struct shape shape;
+
+typedef
+struct symbol
+{
+    char  *name; // variable/array/function name
+    int   addr ; // address, i.e., offset from `sb`
+    shape *sh  ; // shape of array/function in the form of linked list
+    int   size ; // size of array
+    // pay attention to variable-array duality, i.e.,
+    // variable `foo` is equivalent to `foo[0,0,…,0]`.
+}
+symbol;
+extern symbol table[100];
 extern int symIndex;

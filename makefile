@@ -1,5 +1,5 @@
 c6c.o: lex.yy.c y.tab.c c6c.c
-	gcc -o $@ lex.yy.c y.tab.c c6c.c
+	gcc -o $@ y.tab.c lex.yy.c c6c.c
 
 lex.yy.c: c6.l
 	flex c6.l

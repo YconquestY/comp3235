@@ -23,25 +23,28 @@ void yyerror(char *);
 \".+\"	{ yytext[yyleng-1]=0;
           yylval.iValue = (long) yytext+1;
           return STRING;
-}
-[-()<>=+*/;{}.%] { return *yytext; }
+        }
+[-()<>=+*/;{}.%\[\],@] { return *yytext; }
 
 ">=" { return GE; }
 "<=" { return LE; }
 "==" { return EQ; }
 "!=" { return NE; }
 
-"for"   { return FOR; }
+"&&" { return AND; }
+"||" { return OR; }
+    /* keyword */
+"for"   { return FOR;   }
 "while" { return WHILE; }
-"if"    { return IF; }
-"else"  { return ELSE; }
+"if"    { return IF;    }
+"else"  { return ELSE;  }
 
 "print" { return PRINT; }
 "puti"  { return PRINT; }
 "puti_" { return PUTI_; }
-"puts"  { return PUTS; }
+"puts"  { return PUTS;  }
 "puts_" { return PUTS_; }
-"putc"  { return PUTC; }
+"putc"  { return PUTC;  }
 "putc_" { return PUTC_; }
 
 "read" { return READ; }
@@ -49,16 +52,15 @@ void yyerror(char *);
 "getc" { return GETC; }
 "gets" { return GETS; }
 
-"&&" { return AND; }
-"||" { return OR; }
-
+"array" { return ARRAY; }
+    /* identifier */
 [[:alpha:]][[:alnum:]]* { yylval.iValue = (long) yytext;
                           return VARIABLE;
                         }
 
-\/\/.*\n { /* skip comments */     }
-[ \t\n]+ { /* ignore whitespace */ }
-.        { yyerror("unknown character"); }
+\/\/.*\n   { /* skip comments */     }
+[ \t\n\r]+ { /* ignore whitespace */ } /* Pay attention to `\r` on Windows. */
+.          { yyerror("unknown character"); }
 
 %%
 

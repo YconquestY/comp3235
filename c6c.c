@@ -1,12 +1,15 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "calc3.h"
 #include "y.tab.h"
+
 
 static int lbl;
 
 int ex(nodeType *p)
 {
-    int lblx, lbly, lbl1, lbl2;
+    int lblx, lbly, lbl1, lbl2,
+        idx; // symbol table index
 
     if (!p) {
         return 0;
@@ -20,7 +23,7 @@ int ex(nodeType *p)
                 printf("\tpush\t\"%s\"\n", (char *) p->con.value); 
             break;
         case typeId:        
-            printf("\tpush\tsb[%0d]\n", p->id.i); 
+            printf("\tpush\tsb[%0d]\n", table[p->id.i].addr); 
             break;
         case typeOpr:
             switch(p->opr.oper)
@@ -71,15 +74,15 @@ int ex(nodeType *p)
                     break;
                 case GETC:
                     printf("\tgetc\n");
-                    printf("\tpop\tsb[%0d]\n", p->opr.op[0]->id.i);
+                    printf("\tpop\tsb[%0d]\n", table[p->opr.op[0]->id.i].addr);
                     break;
                 case GETS:
                     printf("\tgets\n");
-                    printf("\tpop\tsb[%0d]\n", p->opr.op[0]->id.i);
+                    printf("\tpop\tsb[%0d]\n", table[p->opr.op[0]->id.i].addr);
                     break;
                 case READ:
                     printf("\tgeti\n");
-                    printf("\tpop\tsb[%0d]\n", p->opr.op[0]->id.i);
+                    printf("\tpop\tsb[%0d]\n", table[p->opr.op[0]->id.i].addr);
                     break;
                 case PRINT: ex(p->opr.op[0]); printf("\tputi\n") ; break;
                 case PUTI_: ex(p->opr.op[0]); printf("\tputi_\n"); break;
@@ -89,13 +92,27 @@ int ex(nodeType *p)
                 case PUTC_: ex(p->opr.op[0]); printf("\tputc_\n"); break;
                 case '=':       
                     ex(p->opr.op[1]);
-                    printf("\tpop\tsb[%0d]\n", p->opr.op[0]->id.i);
+                    printf("\tpop\tsb[%0d]\n", table[p->opr.op[0]->id.i].addr);
                     break;
                 case UMINUS:    
                     ex(p->opr.op[0]);
                     printf("\tneg\n");
                     break;
-                default: // binary operators
+                case DECL:
+                    // space allocated when declaring next variable/array
+                    break;
+                case INIT:
+                    idx = p->opr.op[0]->id.i;
+                    // space allocated when declaring next variable/array
+                    ex(p->opr.op[2]);      // result atop stack
+                    printf("\tpop\tac\n"); // result in ac
+                    // initialize array
+                    for (int i = 0; i < table[idx].size; i++) {
+                        printf("\tpush\tac\n");
+                        printf("\tpop\tsb[%0d]\n", table[idx].addr + i);
+                    }
+                    break;
+                default: // `;` and binary operators
                     ex(p->opr.op[0]);
                     ex(p->opr.op[1]);
                     switch(p->opr.oper)
