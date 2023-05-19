@@ -6,6 +6,9 @@
 
 static int lbl;
 
+void traverse(nodeType *, shape *);
+void offsetof(nodeType *, int);
+
 int ex(nodeType *p)
 {
     int lblx, lbly, lbl1, lbl2,
@@ -90,13 +93,33 @@ int ex(nodeType *p)
                 case PUTS_: ex(p->opr.op[0]); printf("\tputs_\n"); break;
                 case PUTC : ex(p->opr.op[0]); printf("\tputc\n") ; break;
                 case PUTC_: ex(p->opr.op[0]); printf("\tputc_\n"); break;
-                case '=':       
-                    ex(p->opr.op[1]);
-                    printf("\tpop\tsb[%0d]\n", table[p->opr.op[0]->id.i].addr);
+                case '=':
+                    if (p->opr.nops == 2) { // variable assignment
+                        ex(p->opr.op[1]);
+                        printf("\tpop\tsb[%0d]\n", table[p->opr.op[0]->id.i].addr);
+                    }
+                    else if (p->opr.nops == 3) // array entry assignment
+                    {
+                        // WARNING
+                        // It is a MUST to compute the RHS first to avoid `ac`
+                        // conflict. The RHS expression may itself involves
+                        // array access (see `ENTRY` case below), in which case
+                        // `ac` is used to cache the offset from `sb`. Had we
+                        // handled the LHS first, whatever in `ac` would be
+                        // flushed by computation at the RHS.
+                        ex(p->opr.op[2]);                           // result atop stack
+                        offsetof(p->opr.op[1], p->opr.op[0]->id.i); // offset from `sb` in `ac` 
+                        printf("\tpop\tsb[ac]\n");                  // modify element
+                    }
                     break;
-                case UMINUS:    
+                case UMINUS:
                     ex(p->opr.op[0]);
                     printf("\tneg\n");
+                    break;
+                case ',':
+                    // array
+                    //     shape declaration
+                    //     entry access
                     break;
                 case DECL:
                     // space allocated when declaring next variable/array
@@ -111,6 +134,10 @@ int ex(nodeType *p)
                         printf("\tpush\tac\n");
                         printf("\tpop\tsb[%0d]\n", table[idx].addr + i);
                     }
+                    break;
+                case ENTRY:
+                    offsetof(p->opr.op[1], p->opr.op[0]->id.i); // offset from `sb` in `ac`
+                    printf("\tpush\tsb[ac]\n"); // access element
                     break;
                 default: // `;` and binary operators
                     ex(p->opr.op[0]);
@@ -134,4 +161,54 @@ int ex(nodeType *p)
             }
     }
     return 0;
+}
+
+void offsetof(nodeType *p, int idx) // no out-of-index or axis mismatch errors checking
+{
+    printf("\tpush\t%d\n", table[idx].addr); // array base
+    // array index
+    if (table[idx].sh == NULL) { // variable
+        // Pay attention to variable-array duality, i.e., a variable `foo` is
+        // equivalent to an array of size 1. When accessed, either `foo` or
+        // `foo[0,0,…,0]` works.
+        printf("\tpush 0\n");
+    }
+    else if (table[idx].size == 1) { // singleton array
+        printf("\tpush 0\n");
+    }
+    else if (table[idx].size > 1)
+    {
+        shape *s = table[idx].sh->next;
+        // `s` leads a linked list, and `p` roots an AST. The goal is to
+        // traverse them simulationously to compute the offset.
+        if (s == NULL) { // single-dimensional array
+            ex(p);       // `p` itself leads an expression.
+        }
+        else { // multi-dimensional array
+            ex(p->opr.op[0]); // leading dimension
+            traverse(p->opr.op[1], s);
+        }
+    }
+    printf("\tadd\n");     // offset from `sb` atop stack
+    printf("\tpop\tac\n"); // store offset in `ac`
+}
+
+void traverse(nodeType *p, shape *s)
+{   // ',' functions as the delimiter, i.e., `p->opr.oper`, a.k.a. AST root of
+    // `exp_list`, which can be either array indices or arguments in a function
+    // call. Meanwhile, a function call may appear as an array index. Therefore,
+    // we cannot rely on attributes of `p`, such as `oper` (',') or `nops`
+    // (also 2 in binary operations) to distinguish an expression tree from an
+    // indices tree.
+    printf("\tpush\t%0d\n", s->dim);
+    printf("\tmul\n");
+    if (s->next == NULL) { // trailing dimension: `p` leads an expression rather than rooting a tree
+        ex(p);
+        printf("\tadd\n");
+    }
+    else { // still an indices tree
+        ex(p->opr.op[0]);
+        printf("\tadd\n");
+        traverse(p->opr.op[1], s->next);
+    }
 }

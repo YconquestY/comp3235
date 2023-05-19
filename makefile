@@ -8,11 +8,11 @@ y.tab.c: c6.y
 	bison -y -d c6.y
 
 nas.o:
-	flex nas/nas.l
 	bison -d nas/nas.y
+	flex nas/nas.l
 	gcc -o $@ lex.yy.c nas.tab.c
 
 nas2.o:
-	flex nas2/nas2.l
 	bison -d nas2/nas2.y
+	flex nas2/nas2.l
 	gcc -o $@ lex.yy.c nas2.tab.c

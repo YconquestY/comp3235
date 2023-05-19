@@ -33,7 +33,7 @@ int i; // dummy variable in `for` loop
 
 %token <iValue> INTEGER STRING VARIABLE
 %token FOR WHILE IF PRINT PUTI_ PUTS PUTS_ PUTC PUTC_ GETS GETC READ ARRAY
-%token DECL INIT // dummy labels
+%token DECL INIT ENTRY // dummy labels
 // increasing order of precedence
 %nonassoc IFX
 %nonassoc ELSE // prevent dangling `else`
@@ -69,8 +69,9 @@ stmt: ';'      { $$ = opr(';', 2, NULL, NULL); }
 	| GETS '(' var ')' ';' { $$ = opr(GETS, 1, id($3)); }
 	| GETC '(' var ')' ';' { $$ = opr(GETC, 1, id($3)); }
     | var '=' expr ';' { $$ = opr('=', 2, id($1), $3); }
-    | ARRAY decl_list ';'                { $$ = $2; } // new: array declaration
-    | var '[' expr_list ']' '=' expr ';' {} // new: array assignment
+    | ARRAY decl_list ';'                { $$ = $2; }       // new: array declaration
+    | var '[' expr_list ']' '=' expr ';' { $$ = opr('=', 3, // new: array assignment
+                                                    id($1), $3, $6); }
 	| FOR '(' stmt stmt stmt ')' stmt { $$ = opr(FOR  , 4, $3, $4, $5, $7); }
     | WHILE '(' expr ')' stmt         { $$ = opr(WHILE, 2, $3, $5        ); }
     | IF '(' expr ')' stmt %prec IFX { $$ = opr(IF, 2, $3, $5    ); }
@@ -105,7 +106,7 @@ stmt_list: stmt           { $$ = $1;                  }
 expr: INTEGER { $$ = con($1, 0); }
 	| STRING  { $$ = con($1, 1); }
     | var     { $$ = id($1);     }
-    | var '[' expr_list ']' {} // new: array access
+    | var '[' expr_list ']' { $$ = opr(ENTRY, 2, id($1), $3); } // new: array access
     | '-' expr %prec UMINUS { $$ = opr(UMINUS, 1, $2); }
     | expr '+' expr { $$ = opr('+', 2, $1, $3); }
     | expr '-' expr { $$ = opr('-', 2, $1, $3); }
@@ -122,9 +123,13 @@ expr: INTEGER { $$ = con($1, 0); }
 	| expr OR  expr { $$ = opr(OR , 2, $1, $3); }
     | '(' expr ')' { $$ = $2; }
     ;
-// TODO: left or right recursion?
-expr_list: expr               {}
-         | expr_list ',' expr {}
+/* right recursion
+ * There is no need to stick to left recursion in match of `int_list`.
+ * `table[…].shape` is a linked list with head being the first dimension. Right
+ * recursion constructs a tree whose LHS is always a concrete expression,
+ * making it convenient for array access. */
+expr_list: expr               { $$ = $1; }
+         | expr ',' expr_list { $$ = opr(',', 2, $1, $3); }
          ;
 
 var: VARIABLE { for (i = 0; i <= symIndex; i++)
