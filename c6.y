@@ -15,7 +15,7 @@ int  shapeof(nodeType *p);
 int  symIndexof(int, char *);
 void freeNode(nodeType *p);
 int  ex(nodeType *p);
-void exf(int);
+void exf();
 
 int yylex(void);
 void yyerror(char *s);

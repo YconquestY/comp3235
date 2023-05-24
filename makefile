@@ -1,11 +1,7 @@
-c6c.o: lex.yy.c y.tab.c c6c.c
-	gcc -o $@ y.tab.c lex.yy.c c6c.c
-
-lex.yy.c: c6.l
-	flex c6.l
-
-y.tab.c: c6.y
+c6c.o: c6.l c6.y c6c.c
 	bison -y -d c6.y
+	flex c6.l
+	gcc -o $@ y.tab.c lex.yy.c c6c.c
 
 nas.o:
 	bison -d nas/nas.y

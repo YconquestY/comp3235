@@ -355,23 +355,36 @@ void argsof(nodeType *p, int level, int callee)
 
 void pusharg(nodeType *p, int level, int callee)
 {
+    int idx;
     char *base = (scopeIndex == 0) ? "sb" : "fp";
 
     if (p->type == typeId)
-    {   // array as parameter: pass by reference
-        if (tables[scopeIndex][p->id.i].sh)
+    {
+        idx = p->id.i;
+        if (tables[scopeIndex][idx].sh) // array as parameter: pass by reference
         {
-            if (scopeIndex == 0) { // only pass global array as argument
-                printf("\tpush\t%0d\t// pass by reference\n", tables[0][p->id.i].addr);
-                tables[callee][ funcs[callee].nargs - level ].sh = tables[0][p->id.i].sh; // `sh` non-`NULL` but `size` still 1
+            if (scopeIndex == 0) { // global array as argument
+                printf("\tpush\t%0d\t// pass by reference\n", tables[0][idx].addr);
+                tables[callee][ funcs[callee].nargs - level ].sh = tables[0][idx].sh; // `sh` non-`NULL` but `size` still 1
             }
-            else {
-                yyerror("passing local array as argument");
-                exit(1);
+            else { // local array as argument: base address already in `fp[…]`
+                printf("\tpush\tfp[%0d]\t// pass by reference\n", tables[scopeIndex][idx].addr);
             }
         }
         else { // pass by value
-            printf("\tpush\t%s[%0d]\t// pass by value\n", base, tables[scopeIndex][p->id.i].addr);
+            printf("\tpush\t%s[%0d]\t// pass by value\n", base, tables[scopeIndex][idx].addr);
+            tables[callee][ funcs[callee].nargs - level ].sh = tables[scopeIndex][idx].sh; // `sh` non-`NULL` but `size` still 1
+        }
+    }
+    else if ((p->type == typeOpr) && (p->opr.oper == GVAR))
+    {
+        idx = p->opr.op[0]->id.i;
+        if (tables[0][idx].sh) { // global array as parameter: pass by reference
+            printf("\tpush\t%0d\t// pass by reference\n", tables[0][idx].addr);
+            tables[callee][ funcs[callee].nargs - level ].sh = tables[0][idx].sh; // `sh` non-`NULL` but `size` still 1
+        }
+        else { // pass by value
+            printf("\tpush\tsb[%0d]\t// pass by value\n", tables[0][idx].addr);
         }
     }
     else {
