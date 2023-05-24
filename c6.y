@@ -58,7 +58,7 @@ int i, j; // dummy variables in `for` loop
 
 %type <nPtr> mix func stmt str_list decl_list decl int_list stmt_list expr expr_list
 %type <sIndex> var gvar
-%type <sIndex> fdef /* fcall */
+%type <sIndex> fdef
 
 %%
 /* It is a must to compile global statements first. The function body relies on
