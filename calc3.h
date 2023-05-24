@@ -1,3 +1,9 @@
+#define MAX_SCOPE 100
+#define MAX_SYM   100
+#define MAX_FUNC  100
+#define GLOBAL    500
+#define LOCAL      50
+
 typedef
 enum { typeCon, typeId, typeOpr }
 nodeEnum;
@@ -13,7 +19,7 @@ conNodeType;
 /* identifiers */
 typedef
 struct {
-    int i; // index of symbol table
+    int i; // data/function environment index
 }
 idNodeType;
 
@@ -43,7 +49,9 @@ struct nodeTypeTag
 }
 nodeType;
 
-struct shape {
+/* data environment
+ * for variables and arrays */
+struct shape { // shape of array
     int dim; // dimension
     struct shape *next;
 };
@@ -60,5 +68,29 @@ struct symbol
     // variable `foo` is equivalent to `foo[0,0,…,0]`.
 }
 symbol;
-extern symbol table[100];
-extern int symIndex;
+extern symbol tables[100][100];
+extern int    symIndex[100];
+extern int    scopeIndex;
+extern int    nscope;
+
+/* function environment */
+struct param { // a positional parameter
+    char *name; // parameter name
+    int  pIdx;  // index of parameter list, useful in `pop fp[#]`
+    struct param *next;
+};
+typedef struct param param;
+
+struct func {
+    char *name; // function name
+    int  nargs; // no. of parameters
+    nodeType *body; // function body
+    int ret;   // whether a function returns something
+    int label; // `L###` to jump to when called
+};
+typedef struct func func;
+
+extern func funcs[100]; // max. 100 functions
+extern int  funcIndex;  // function environment index
+
+extern int lbl;

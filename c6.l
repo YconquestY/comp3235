@@ -19,13 +19,7 @@ void yyerror(char *);
 '.'	{ yylval.iValue = (long) yytext[1];
       return INTEGER;
 	}
-    /* string */
-\".+\"	{ yytext[yyleng-1]=0;
-          yylval.iValue = (long) yytext+1;
-          return STRING;
-        }
-[-()<>=+*/;{}.%\[\],@] { return *yytext; }
-
+    /* operator */
 ">=" { return GE; }
 "<=" { return LE; }
 "==" { return EQ; }
@@ -52,7 +46,16 @@ void yyerror(char *);
 "getc" { return GETC; }
 "gets" { return GETS; }
 
-"array" { return ARRAY; }
+"array"  { return ARRAY; }
+"func"   { return FUNC;  }
+"return" { return RETURN; }
+
+[-()<>=+*/;{}.%\[\],@] { return *yytext; }
+    /* string */
+\".+\"	{ yytext[yyleng-1]=0;
+          yylval.iValue = (long) yytext+1;
+          return STRING;
+        }
     /* identifier */
 [[:alpha:]][[:alnum:]]* { yylval.iValue = (long) yytext;
                           return VARIABLE;
@@ -60,7 +63,13 @@ void yyerror(char *);
 
 \/\/.*\n   { /* skip comments */     }
 [ \t\n\r]+ { /* ignore whitespace */ } /* Pay attention to `\r` on Windows. */
-.          { yyerror("unknown character"); }
+.          { yyerror("unknown character");
+             // printf("ASCII of unknown character:");
+             // for (int i = 0; i < yyleng; i++) {
+             //     printf(" %d", yytext[i]);
+             // }
+             // printf("\n");
+           }
 
 %%
 
