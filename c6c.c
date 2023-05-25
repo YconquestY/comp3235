@@ -199,7 +199,7 @@ int ex(nodeType *p)
                     // determine callee
                     fcall = strtok((char *) p->opr.op[0]->con.value, " +-*/%()[]{}<>=,.;@");
                     for (callee = 1; callee < nscope; callee++) {
-                        if (strcmp(funcs[callee].name, (char *) p->opr.op[0]->con.value) == 0) {
+                        if (strcmp(funcs[callee].name, fcall) == 0) { // still correct since `strtok` also modifies original string
                             printf("\t// %s called as funcs[%d]\n", funcs[callee].name, callee);
                             break;
                         }
