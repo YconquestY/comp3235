@@ -1,39 +1,41 @@
-# COMP3235 Assignment 3
+# `c6`
 
-| Name   | UID        |
-| ---    | ---        |
-| Yu Yue | 3035637709 |
+`c6` is a toy compiler for an imperative, JavaScirpt-like language. Implemented with `flex` and `bison`, it targets the stack machine simulator [`nas2`](https://github.com/YconquestY/comp3235/tree/main/nas2).
 
-## Submission
+## Features
 
-I implemented **all** features and bonuses.
+`c6` supports loops, multi-dimensional arrays, and functions. It does not support `break;` or `continue;` statements inside loops yet, but these features may be readily implemented with minimal effort.
 
-| File | Description |
-| ---  | ---         |
-| `calc3.h` | Utilities |
-| `c6.l`    | Scanner   |
-| `c6.y`    | Parser    |
-| `c6c.c`   | Backend   |
-| `makefile` |  |
-| `test/array.sc` | Test for feature 1; showcases nested arrays. |
-| `test/bb1.sc` | Test for bonus (b); showcases passing an array as a function argument and accessing/modifying it inside the function call. |
-| `test/bb2.sc` | Test for bonus (b); similar to `test/bb1.sc`. |
-| `test/bb2.sc` | Test for bonus (b); showcases further passing an array as a function argument in **nested** functions |
+There is a hard limit on the number of global data (variable and arrays), local data (w.r.t. functions), and functions. One may declare at most $99$ functions, each with no more than $50$ paramenters, and global data occupying a maximum of $500$ stack cells. Local data inside a function shall not exceed $50$ stack cells. See [design choices](#design) for details.
 
+`c6` implements no optimization and garbage collection at all.
 
 ## Usage
 
-To get an executable compiler, run `make c6c.o`. Also,
+```bash
+$ make nas2.o # build stack machine simulator
+$ make c6c.o  # build compiler
+$ ./c6c.o test/array.sc > test/array.nas2 # compile c6 program
+$ ./nas2.o test/array.nas2                # run c6 executable on stack machine
+```
 
-- Use only alphanumeric characters for identifiers of variables. Underscores, such as `comp_3259`, are **not** allowed.
-- Do **not** use floating-point numbers.
+One may also replace `test/array.sc` above with his/her own program.
 
-### Feature 1
+## Design
 
-New: `[`, `]`, and keyword `array`
+`c6` uses $3$ tables to keep track of data and function environments.
 
-- Do not declare arrays and variables with an identical name within a single scope. `c6` does not check duplicate error.<br>
-  For instance, the following is allowed.
+| Array | Description |
+| ---   | ---         |
+| `tables[100][100]`| The symbol table, a.k.a. data environment. `tables[0][0..99]` is for the global scope, and each of the remaining corresponds to a new function. All calls of a recursive function that invokes itself repeatedly share $1$ table. |
+| `symIndex[100]`| Maximum index of symbols per scope. `symIndex[i]` marks the number of variables and arrays in the $\texttt{i}^\text{th}$ scope. |
+| `funcs[100]` | The function environment. `funcs[1..99]` are functions while `funcs[0]` is not in use. |
+
+### Warning
+
+- Use only alphanumeric characters for identifiers of variables. Underscores, such as `comp_3235`, are not allowed.
+- `c6` is interger-only. Do not use floating-point numbers.
+- Do not declare arrays and variables with an identical name within a single scope. `c6` does not check duplicate error. For instance, the following is allowed.<br>
   ```
   array foo[3] = 0;
   …
@@ -55,14 +57,38 @@ New: `[`, `]`, and keyword `array`
 - Do not declare too many large arrays. The global scope can hold a maximum of $100$ variables/arrays with $500$ memory cells.
 - Do not declare singleton arrays. `array a[1] = 3259;` is neither valid nor meaningful.
 - `c6` does **not** support dynamic array declaration. `x = 1; y = 2; array z[x + y, x * y];` is invalid; always use concrete dimensions: `array z[3, 2];`.
-
-### Feature 2
-
-New: `,`, `@`, keywords `func` and `return`
-
 - `c6` implements **static** scoping, i.e., the function is bound to the data environment at the time of function **definition**. If there is global variable access within a function, then the global variable must be declared **before** the function is declared.
-- `c6` supports up to $100$ scopes, the first of which is the global one. This means the ensuing $99$ scopes are reserved for functions. Correspondingly, one may define no more than $99$ functions in `c6`.
-- `c6` implements **no** optimization at all. A function is always translated to `nas2` instructions regardless of whether it is called.
-- A `c6` function may take at most $50$ parameters. Variables local to a function shall not occupy over $50$ memory cells in total.
 - Do not define a function twice.
 - Do not define a function with a different parameter list or body.
+
+## Files
+
+The repository is organized as follows.
+
+```
+./
+├──nas2/
+│   ├── nas2.md
+│   ├── nas2.l
+│   └── nas2.y
+├── calc3.h
+├── c6.l
+├── c6.y
+├── c6c.c
+├── makefile
+└── test/
+    ├── array.sc
+    ├── bb1.sc
+    ├── bb2.sc
+    └── bb3.sc
+```
+
+`nas2/` contains the stack machine simulator. `c6.*` is the compiler frontend; `c6c.c` is the backend. `test/` contains sample `c6` programs.
+
+## [`nas2`](https://github.com/YconquestY/comp3235/tree/main/nas2)
+
+`nas2` is a stack machine simulator used in [COMP3235](https://www.cs.hku.hk/index.php/programmes/course-offered?infile=2022/comp3235.html) *Compiling techinuqes* by the [University of Hong Kong](https://hku.hk). See the [doc](https://github.com/YconquestY/comp3235/blob/main/nas2/nas2.md) for details.
+
+## Acknowledgement
+
+`c6` extends [`calc3`](https://epaperpress.com/lexandyacc/download/LexAndYaccCode.zip), a calculator interpreter in [*Lex and Yacc*](https://www.epaperpress.com/lexandyacc/index.html) by [Tom Niemann](https://www.epaperpress.com/whoami/index.html). Building `c6` was assignment 3 of COMP3235.
